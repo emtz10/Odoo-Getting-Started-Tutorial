@@ -26,6 +26,9 @@ class EstateProperty(models.Model):
     garden = fields.Boolean(default=False)
     garden_area = fields.Integer('Garden area')
     garden_orientation =  fields.Selection(string='Garden orientation', selection=[('north', 'North'), ('south', 'South'), ('east', 'East'), ('west', 'West')])
+    property_type_id = fields.Many2one(string="Property Type", comodel_name='estate.property.type')
+    users_id = fields.Many2one('res.users', string='Salesman', default=lambda self: self.env.user)
+    partner_id = fields.Many2one('res.partner', string='Buyer', copy=False)
     """" Adding reserved fields to table """
     active = fields.Boolean(default=True)
     state = fields.Selection(
@@ -37,3 +40,10 @@ class EstateProperty(models.Model):
             ('sold_and_canceled', 'Sold and Canceled')
         ]), required=True, copy=False, default='new'
     )
+
+
+class EstatePropertyType(models.Model):
+    _name = "estate.property.type"
+    _description = "Real Estate Property Type Data"
+
+    name = fields.Char(required=True)
