@@ -31,6 +31,7 @@
                         </h1>
                         <field name="active" invisible="1"/>
                     </div>
+                    <field name="property_tag_id" widget="many2many_tags"/>
                     <group>
                         <group>
                             <field name="property_type_id"/>
@@ -57,6 +58,15 @@
                                     <field name="garden_orientation"/>
                                 </group>
                             </group>
+                        </page>
+                        <page string="Offers">
+                            <field name="offer_ids">
+                                <tree>
+                                    <field name="price"/>
+                                    <field name="partner_id"/>
+                                    <field name="status"/>
+                                </tree>
+                            </field>
                         </page>
                         <page string="Other Info">
                             <group>
@@ -110,6 +120,12 @@
     <record id="estate_property_type_action" model="ir.actions.act_window">
         <field name="name">Property Types</field>
         <field name="res_model">estate.property.type</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="estate_property_tag_action" model="ir.actions.act_window">
+        <field name="name">Property Tags</field>
+        <field name="res_model">estate.property.tag</field>
         <field name="view_mode">tree,form</field>
     </record>
 </odoo>

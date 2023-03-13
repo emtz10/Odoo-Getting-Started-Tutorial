@@ -29,6 +29,8 @@ class EstateProperty(models.Model):
     property_type_id = fields.Many2one(string="Property Type", comodel_name='estate.property.type')
     users_id = fields.Many2one('res.users', string='Salesman', default=lambda self: self.env.user)
     partner_id = fields.Many2one('res.partner', string='Buyer', copy=False)
+    property_tag_id = fields.Many2many('estate.property.tag', string="Tags")
+    offer_ids = fields.One2many("estate.property.offer", "property_id", string="Offers")
     """" Adding reserved fields to table """
     active = fields.Boolean(default=True)
     state = fields.Selection(
@@ -47,3 +49,20 @@ class EstatePropertyType(models.Model):
     _description = "Real Estate Property Type Data"
 
     name = fields.Char(required=True)
+
+
+class EstatePropertyTag(models.Model):
+    _name = "estate.property.tag"
+    _description = "Real Estate Property Tag"
+
+    name = fields.Char(required=True)
+
+
+class EstatePropertyOffer(models.Model):
+    _name = "estate.property.offer"
+    _description = "Real Estate Property Offer"
+
+    price = fields.Float()
+    status = fields.Selection(selection=[('accepted', 'Accepted'), ('refused', 'Refused')], copy=False)
+    partner_id = fields.Many2one('res.partner', required=True)
+    property_id = fields.Many2one('estate.property', required=True)
