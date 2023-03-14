@@ -2,6 +2,7 @@
 
 """" Import packages from Odoo """
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 """" Import date and time libraries """
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -41,7 +42,8 @@ class EstateProperty(models.Model):
             ('new', 'New'),
             ('offer_received', 'Offer Received'),
             ('offer_accepted', 'Offer Accepted'),
-            ('sold_and_canceled', 'Sold and Canceled')
+            ('sold', 'Sold'),
+            ('canceled', 'Canceled'),
         ]), required=True, copy=False, default='new'
     )
 
@@ -67,6 +69,22 @@ class EstateProperty(models.Model):
             self.garden_area = 0
             self.garden_orientation = ''
 
+    # Actions
+    def action_cancel_property(self):
+        for record in self:
+            if record.state != 'sold' and record.state != 'canceled':
+                record.state = 'canceled'
+            else:
+                raise UserError("You can't change the status of this property")
+        return True
+
+    def action_sell_property(self):
+        for record in self:
+            if record.state != 'canceled' and record.state != 'sold':
+                record.state = 'sold'
+            else:
+                raise UserError("You can't change the status of this property")
+        return True
 
 
 class EstatePropertyType(models.Model):
@@ -104,3 +122,27 @@ class EstatePropertyOffer(models.Model):
     def _inverse_deadline(self):
         for record in self:
             record.validity = relativedelta(record.date_deadline, record.create_date.date()).days
+
+    # Actions related to buttons in view
+    # Confirm offer when property state is not selected or is offer_received or new
+    # This is the only way to update selling price
+    # This method link the buyer with the property
+    def action_confirm_offer(self):
+        for record in self:
+            if record.property_id.state not in ['offer_accepted', 'sold', 'canceled'] and record.property_id.selling_price != 0:
+                record.status = 'accepted'
+                record.property_id.selling_price = record.price
+                record.property_id.partner_id = record.partner_id
+                record.property_id.state = 'offer_accepted'
+            else:
+                raise UserError("You can't accept the offer")
+        return True
+
+    # Cancel offer only when no status is selected
+    def action_cancel_offer(self):
+        for record in self:
+            if record.status is False:
+                record.status = 'refused'
+            else:
+                raise UserError("You can't cancel this offer")
+        return True
