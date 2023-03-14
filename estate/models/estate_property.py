@@ -1,11 +1,12 @@
 """" Real Estate Property module for Odoo 16 """
 
-"""" Import packages from Odoo """
-from odoo import api, fields, models
-from odoo.exceptions import UserError
 """" Import date and time libraries """
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+"""" Import packages from Odoo """
+from odoo import api, fields, models
+from odoo.exceptions import UserError, ValidationError
+from odoo.tools import float_compare, float_is_zero
 
 class EstateProperty(models.Model):
     """" Set name to table in database, `.` converts to `_` """
@@ -26,7 +27,12 @@ class EstateProperty(models.Model):
     garage = fields.Boolean(default=False)
     garden = fields.Boolean(default=False)
     garden_area = fields.Integer('Garden area')
-    garden_orientation =  fields.Selection(string='Garden orientation', selection=[('north', 'North'), ('south', 'South'), ('east', 'East'), ('west', 'West')])
+    garden_orientation =  fields.Selection(string='Garden orientation', selection=[
+        ('north', 'North'),
+        ('south', 'South'),
+        ('east', 'East'),
+        ('west', 'West')
+    ])
     property_type_id = fields.Many2one(string="Property Type", comodel_name='estate.property.type')
     users_id = fields.Many2one('res.users', string='Salesman', default=lambda self: self.env.user)
     partner_id = fields.Many2one('res.partner', string='Buyer', copy=False)
@@ -47,12 +53,12 @@ class EstateProperty(models.Model):
         ]), required=True, copy=False, default='new'
     )
 
-    # Computed fields
-    # Adding dependencies to decorator
+    """ Computed fields """
+    """ Adding dependencies to decorator """
     @api.depends("living_area", "garden_area")
     def _compute_total_area(self):
         for record in self:
-            # Updating field with sum of values
+            """ Updating field with sum of values """
             record.total_area = record.living_area + record.garden_area
 
     @api.depends("offer_id.price")
@@ -60,7 +66,7 @@ class EstateProperty(models.Model):
         for offer in self:
             offer.best_price = max(self.mapped('offer_id.price')) if self.mapped('offer_id.price') else 0
 
-    # Onchange method to update field values when another field is updated
+    """ Onchange method to update field values when another field is updated """
     def _onchange_garden(self):
         if self.garden:
             self.garden_area = 10
@@ -69,7 +75,7 @@ class EstateProperty(models.Model):
             self.garden_area = 0
             self.garden_orientation = ''
 
-    # Actions
+    """ Actions """
     def action_cancel_property(self):
         for record in self:
             if record.state != 'sold' and record.state != 'canceled':
@@ -86,6 +92,20 @@ class EstateProperty(models.Model):
                 raise UserError("You can't change the status of this property")
         return True
 
+    _sql_constraints = [
+        ('check_expected_price', 'CHECK(expected_price > 0)',
+         'Expected price must be greater than zero!'),
+        ('check_selling_price', 'CHECK(selling_price >= 0)',
+         'Selling price must be positive!'),
+    ]
+
+    @api.constrains('selling_price')
+    def _check_selling_price(self):
+        for record in self:
+            if float_compare(record.selling_price, (record.expected_price * 0.9), 2) < 0 \
+                and float_is_zero(record.selling_price, 2) is False:
+                raise ValidationError("Selling price can't be lower than 90% of expected price")
+
 
 class EstatePropertyType(models.Model):
     _name = "estate.property.type"
@@ -93,12 +113,22 @@ class EstatePropertyType(models.Model):
 
     name = fields.Char(required=True)
 
+    _sql_constraints = [
+        ('check_type_name', 'UNIQUE(name)',
+         'Type name must be unique!')
+    ]
+
 
 class EstatePropertyTag(models.Model):
     _name = "estate.property.tag"
     _description = "Real Estate Property Tag"
 
     name = fields.Char(required=True)
+
+    _sql_constraints = [
+        ('check_tag_name', 'UNIQUE(name)',
+         'Tag name must be unique!')
+    ]
 
 
 class EstatePropertyOffer(models.Model):
@@ -117,19 +147,20 @@ class EstatePropertyOffer(models.Model):
         for record in self:
             record.date_deadline = (record.create_date if record.create_date else datetime.now().date()) + relativedelta(days=record.validity)
 
-    # This method works similar as the compute method as it update the field values based on another field
-    # This method only works after save a record
+    """ This method works similar as the compute method as it update the field values based on another field """
+    """ This method only works after save a record """
     def _inverse_deadline(self):
         for record in self:
             record.validity = relativedelta(record.date_deadline, record.create_date.date()).days
 
-    # Actions related to buttons in view
-    # Confirm offer when property state is not selected or is offer_received or new
-    # This is the only way to update selling price
-    # This method link the buyer with the property
+    """ Actions related to buttons in view """
+    """ Confirm offer when property state is not selected or is offer_received or new """
+    """ This is the only way to update selling price """
+    """ This method link the buyer with the property """
     def action_confirm_offer(self):
         for record in self:
-            if record.property_id.state not in ['offer_accepted', 'sold', 'canceled'] and record.property_id.selling_price != 0:
+            if record.property_id.state not in ['offer_accepted', 'sold', 'canceled'] \
+                and float_is_zero(record.property_id.selling_price, 2):
                 record.status = 'accepted'
                 record.property_id.selling_price = record.price
                 record.property_id.partner_id = record.partner_id
@@ -138,7 +169,7 @@ class EstatePropertyOffer(models.Model):
                 raise UserError("You can't accept the offer")
         return True
 
-    # Cancel offer only when no status is selected
+    """ Cancel offer only when no status is selected """
     def action_cancel_offer(self):
         for record in self:
             if record.status is False:
@@ -146,3 +177,8 @@ class EstatePropertyOffer(models.Model):
             else:
                 raise UserError("You can't cancel this offer")
         return True
+
+    _sql_constraints = [
+        ('check_offer_price', 'CHECK(price > 0)',
+         'Price must be greater than zero!')
+    ]
