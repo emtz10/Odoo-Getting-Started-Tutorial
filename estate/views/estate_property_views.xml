@@ -1,24 +1,30 @@
 <?xml version="1.0"?>
 <odoo>
-    <!-- Customize list view -->
+    <!-- Customize estate property list view -->
     <record id="estate_property_view_tree" model="ir.ui.view">
         <field name="name">estate.property.tree</field>
         <field name="model">estate.property</field>
         <field name="arch" type="xml">
             <!-- Display more fields in table -->
-            <tree string="Estate Property">
+            <tree
+                string="Estate Property"
+                decoration-success="state in ('offer_received', 'offer_accepted')"
+                decoration-bf="state=='offer_accepted'"
+                decoration-muted="state=='sold'"
+            >
                 <field name="name"/>
                 <field name="postcode"/>
                 <field name="bedrooms"/>
                 <field name="living_area"/>
                 <field name="expected_price"/>
                 <field name="selling_price"/>
-                <field name="date_availability"/>
+                <field name="state" invisible="1"/>
+                <field name="date_availability" optional="hide"/>
             </tree>
         </field>
     </record>
 
-    <!-- Customize form view -->
+    <!-- Customize estate property form view -->
     <record id="estate_property_view_form" model="ir.ui.view">
         <field name="name">estate.property.form</field>
         <field name="model">estate.property</field>
@@ -26,8 +32,9 @@
             <form string="Property">
                 <header>
                 <!-- Buttons to perform actions, logic is store in models. Must be type object -->
-                    <button name="action_cancel_property" type="object" string="Cancel"/>
-                    <button name="action_sell_property" type="object" string="Sold"/>
+                    <button name="action_cancel_property" type="object" string="Cancel" states="new,offer_received,offer_accepted"/>
+                    <button name="action_sell_property" type="object" string="Sold" states="new,offer_received,offer_accepted"/>
+                    <field name="state" widget="statusbar" statusbar_visible="new,offer_received,offer_accepted,sold"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
@@ -36,11 +43,10 @@
                         </h1>
                         <field name="active" invisible="1"/>
                     </div>
-                    <field name="property_tag_id" widget="many2many_tags"/>
+                    <field name="property_tag_id" widget="many2many_tags" options="{'color_field': 'color'}" />
                     <group>
                         <group>
-                            <field name="state"/>
-                            <field name="property_type_id"/>
+                            <field name="property_type_id" options="{'no_create': True, 'can_write': False}"/>
                             <field name="postcode"/>
                             <field name="date_availability" string="Available From"/>
                         </group>
@@ -61,21 +67,28 @@
                                     <field name="facades"/>
                                     <field name="garage"/>
                                     <field name="garden"/>
-                                    <field name="garden_area"/>
-                                    <field name="garden_orientation"/>
+                                    <!-- Add attrs to make invisible when there is no garden -->
+                                    <field name="garden_area" attrs="{'invisible': [('garden', '=', False)]}" />
+                                    <field name="garden_orientation" attrs="{'invisible': [('garden', '=', False)]}" />
                                     <field name="total_area"/>
                                 </group>
                             </group>
                         </page>
                         <page string="Offers">
-                            <field name="offer_id">
-                                <tree>
+                            <field
+                                name="offer_id"
+                                attrs="{'readonly': [('state', 'in', ['offer_accepted', 'sold'])]}">
+                                <tree
+                                    editable="top"
+                                    decoration-success="status == 'accepted'"
+                                    decoration-danger="status == 'refused'">
                                     <field name="price"/>
                                     <field name="partner_id"/>
                                     <field name="validity"/>
-                                    <button name="action_confirm_offer" title='Confirm' type="object" icon="fa-check"/>
-                                    <button name="action_cancel_offer" title='Cancel' type="object" icon="fa-times"/>
-                                    <field name="status"/>
+                                    <field name="date_deadline"/>
+                                    <button name="action_confirm_offer" title='Confirm' type="object" icon="fa-check" attrs="{'invisible': [('status', '!=', False)]}" />
+                                    <button name="action_cancel_offer" title='Cancel' type="object" icon="fa-times" attrs="{'invisible': [('status', '!=', False)]}" />
+                                    <field name="status" invisible="1"/>
                                 </tree>
                             </field>
                         </page>
@@ -104,7 +117,7 @@
                 <field name="postcode" />
                 <field name="expected_price" string="Expected" />
                 <field name="bedrooms" />
-                <field name="living_area" string="Living Area(sqm)" />
+                <field name="living_area" string="Living Area(sqm)" filter_domain="[('living_area', '>=', self)]"/>
                 <field name="facades" />
                 <!-- Filter when date_availability is less or equal than current date -->
                 <filter name='date_availability_filter' string="Date Available" domain="[('date_availability', '&lt;=', context_today().strftime('%Y-%m-%d'))]"/>
@@ -122,10 +135,56 @@
         </field>
     </record>
 
+    <!-- Customize estate property types list view -->
+    <record id="estate_property_type_view_tree" model="ir.ui.view">
+        <field name="name">estate.property.type.tree</field>
+        <field name="model">estate.property.type</field>
+        <field name="arch" type="xml">
+            <!-- Display more fields in table -->
+            <tree string="Estate Property Type">
+                <field name="name"/>
+                <field name="sequence" widget="handle"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Customize estate property types form view -->
+    <record id="estate_property_type_view_form" model="ir.ui.view">
+        <field name="name">estate.property.type.view.form</field>
+        <field name="model">estate.property.type</field>
+        <field name="arch" type="xml">
+            <form string="Property Type">
+                <sheet>
+                    <div class="oe_title">
+                        <h1 class="mb32">
+                            <field name="name" class="mb16"/>
+                        </h1>
+                    </div>
+                    <notebook>
+                        <page string="Properties">
+                            <field name="property_id">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="expected_price"/>
+                                    <field name="state"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Actions for views-->
     <record id="estate_property_action" model="ir.actions.act_window">
         <field name="name">Properties</field>
         <field name="res_model">estate.property</field>
         <field name="view_mode">tree,form</field>
+        <!-- Set default filter for search bar -->
+        <field name="search_view_id" ref="estate_property_view_search"/>
+        <!-- search_default_ + filter_name -->
+        <field name="context">{'search_default_date_availability_filter': True, 'search_default_current': 1}</field>
     </record>
 
     <record id="estate_property_type_action" model="ir.actions.act_window">

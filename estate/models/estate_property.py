@@ -8,10 +8,13 @@ from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_compare, float_is_zero
 
+
+""" Estate properties main model """
 class EstateProperty(models.Model):
     """" Set name to table in database, `.` converts to `_` """
     _name = "estate.property"
     _description = "Real Estate Property Data"
+    _order = "id desc"
 
     name = fields.Char(required=True)
     description = fields.Char(required=True)
@@ -99,6 +102,7 @@ class EstateProperty(models.Model):
          'Selling price must be positive!'),
     ]
 
+    """ Adding constrains using Python code """
     @api.constrains('selling_price')
     def _check_selling_price(self):
         for record in self:
@@ -107,11 +111,15 @@ class EstateProperty(models.Model):
                 raise ValidationError("Selling price can't be lower than 90% of expected price")
 
 
+""" Estate property types catalog """
 class EstatePropertyType(models.Model):
     _name = "estate.property.type"
     _description = "Real Estate Property Type Data"
+    _order = "sequence, name"
 
     name = fields.Char(required=True)
+    property_id = fields.One2many("estate.property", "property_type_id", string="Property")
+    sequence = fields.Integer('Sequence', default=1, help="Used to order stages. Lower is better.")
 
     _sql_constraints = [
         ('check_type_name', 'UNIQUE(name)',
@@ -119,11 +127,14 @@ class EstatePropertyType(models.Model):
     ]
 
 
+""" Estate property tags catalog """
 class EstatePropertyTag(models.Model):
     _name = "estate.property.tag"
     _description = "Real Estate Property Tag"
+    _order = "name"
 
     name = fields.Char(required=True)
+    color = fields.Integer()
 
     _sql_constraints = [
         ('check_tag_name', 'UNIQUE(name)',
@@ -131,9 +142,11 @@ class EstatePropertyTag(models.Model):
     ]
 
 
+""" Offers made to properties """
 class EstatePropertyOffer(models.Model):
     _name = "estate.property.offer"
     _description = "Real Estate Property Offer"
+    _order = "price desc"
 
     price = fields.Float()
     status = fields.Selection(selection=[('accepted', 'Accepted'), ('refused', 'Refused')], copy=False)
@@ -178,6 +191,7 @@ class EstatePropertyOffer(models.Model):
                 raise UserError("You can't cancel this offer")
         return True
 
+    """ Adding constrains using sql """
     _sql_constraints = [
         ('check_offer_price', 'CHECK(price > 0)',
          'Price must be greater than zero!')
