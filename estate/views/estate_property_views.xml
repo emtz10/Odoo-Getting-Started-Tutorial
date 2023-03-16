@@ -86,6 +86,7 @@
                                     <field name="partner_id"/>
                                     <field name="validity"/>
                                     <field name="date_deadline"/>
+                                    <field name="property_type_id"/>
                                     <button name="action_confirm_offer" title='Confirm' type="object" icon="fa-check" attrs="{'invisible': [('status', '!=', False)]}" />
                                     <button name="action_cancel_offer" title='Cancel' type="object" icon="fa-times" attrs="{'invisible': [('status', '!=', False)]}" />
                                     <field name="status" invisible="1"/>
@@ -155,6 +156,13 @@
         <field name="arch" type="xml">
             <form string="Property Type">
                 <sheet>
+                    <!-- Stat button related to 'action_redirect_to_offers' in models -->
+                    <div class="oe_button_box" name="button_box">
+                        <button type="object" name="action_redirect_to_offers"
+                            class="oe_stat_button" icon="fa-book">
+                            <field name="offer_count" string="Offers" widget="statinfo"/>
+                        </button>
+                    </div>
                     <div class="oe_title">
                         <h1 class="mb32">
                             <field name="name" class="mb16"/>
@@ -173,6 +181,25 @@
                     </notebook>
                 </sheet>
             </form>
+        </field>
+    </record>
+
+    <!-- List view for offers related to property types using stat button -->
+    <record id="estate_property_type_offer_tree" model="ir.ui.view">
+        <field name="name">estate.property.offer.tree</field>
+        <field name="model">estate.property.offer</field>
+        <field name="arch" type="xml">
+            <!-- Display more fields in table -->
+            <tree
+                string="Estate Property Offer"
+                decoration-success="status == 'accepted'"
+                decoration-danger="status == 'refused'">
+                <field name="price"/>
+                <field name="partner_id"/>
+                <field name="validity"/>
+                <field name="date_deadline"/>
+                <field name="status" invisible="1"/>
+            </tree>
         </field>
     </record>
 

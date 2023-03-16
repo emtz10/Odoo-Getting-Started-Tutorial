@@ -120,6 +120,25 @@ class EstatePropertyType(models.Model):
     name = fields.Char(required=True)
     property_id = fields.One2many("estate.property", "property_type_id", string="Property")
     sequence = fields.Integer('Sequence', default=1, help="Used to order stages. Lower is better.")
+    offer_ids = fields.One2many("estate.property.offer", "property_type_id")
+    offer_count = fields.Integer(compute="_compute_count_offers")
+
+    """ Compute method to count offers related to property type """
+    @api.depends("offer_ids")
+    def _compute_count_offers(self):
+        for record in self:
+            record.offer_count = len(record.offer_ids)
+
+    """ Action for stat button, with this, there is no need to create the action in views """
+    def action_redirect_to_offers(self):
+        return {
+                'type': 'ir.actions.act_window',
+                'name': 'Offers',
+                'view_mode': 'tree',
+                'res_model': 'estate.property.offer',
+                'domain': [('property_type_id', '=', self.id)],
+                'context': "{'create': False}"
+            }
 
     _sql_constraints = [
         ('check_type_name', 'UNIQUE(name)',
@@ -154,6 +173,8 @@ class EstatePropertyOffer(models.Model):
     property_id = fields.Many2one('estate.property', required=True)
     validity = fields.Integer(default=7, string="Validity (days)")
     date_deadline = fields.Date(compute='_compute_deadline', inverse='_inverse_deadline',  store=True)
+    """ This field is needed for stat button functionality """
+    property_type_id = fields.Many2one(related="property_id.property_type_id", store=True)
 
     @api.depends("validity", "create_date")
     def _compute_deadline(self):
