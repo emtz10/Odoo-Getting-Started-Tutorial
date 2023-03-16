@@ -110,6 +110,15 @@ class EstateProperty(models.Model):
                 and float_is_zero(record.selling_price, 2) is False:
                 raise ValidationError("Selling price can't be lower than 90% of expected price")
 
+    """ Add validations when deleting records with state different to
+        new or canceled.
+    """
+    @api.ondelete(at_uninstall=False)
+    def _unlink_except_if_state_is_new_or_canceled(self):
+        for record in self:
+            if record.state not in ['new', 'canceled']:
+                raise UserError("Properties with offers can't be deleted")
+
 
 """ Estate property types catalog """
 class EstatePropertyType(models.Model):
@@ -217,3 +226,21 @@ class EstatePropertyOffer(models.Model):
         ('check_offer_price', 'CHECK(price > 0)',
          'Price must be greater than zero!')
     ]
+
+    """ Add validations when creating new records to avoid
+        offers with lower price than the current ones
+        and also updates the state of the property when creating
+        the first offer.
+    """
+    @api.model
+    def create(self, vals):
+        offer = self.env['estate.property.offer'].search([
+            ('price', '>', vals['price']),
+            ('property_id', '=', vals['property_id'])
+        ], order="price desc", limit=1)
+        if offer:
+            raise UserError(f"You can't create an offer lower than {offer[0].price}")
+
+        if self.env['estate.property'].browse(vals['property_id']).state == 'new':
+            self.env['estate.property'].browse(vals['property_id']).state = 'offer_received'
+        return super().create(vals)
