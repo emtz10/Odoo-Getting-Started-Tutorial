@@ -5,6 +5,4 @@
     'author': "Eduardo",
     'installable': True,
     'application': True,
-    'data': [
-    ],
 }
