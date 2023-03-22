@@ -11,6 +11,10 @@
         'views/estate_property_views.xml',
         'views/estate_menus.xml',
         'views/estate_salesman_views.xml',
+        'data/estate.property.type.csv',
+    ],
+    'demo': [
+        'demo/estate_demo.xml',
     ],
     'category': 'Real Estate/Brokerage',
 }
