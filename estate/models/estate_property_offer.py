@@ -83,4 +83,9 @@ class EstatePropertyOffer(models.Model):
 
         if self.env['estate.property'].browse(vals['property_id']).state == 'new':
             self.env['estate.property'].browse(vals['property_id']).state = 'offer_received'
+
+        # Add validation to avoid creating offers when properties are sold
+        if self.env['estate.property'].browse(vals['property_id']).state == 'sold':
+            raise UserError("You can't create offers for sold properties")
+
         return super().create(vals)

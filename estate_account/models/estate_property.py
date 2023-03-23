@@ -16,8 +16,8 @@ class EstateProperty(models.Model):
         """ Inherits from action_sell_property method of
             the estate module to add the invoice creation
             functionality when selling properties """
-        self.check_access_rights('update')
-        self.check_access_rule('update')
+        self.check_access_rights('write')
+        self.check_access_rule('write')
 
         res = super(EstateProperty, self).action_sell_property()
         # Get journal value to create an invoice

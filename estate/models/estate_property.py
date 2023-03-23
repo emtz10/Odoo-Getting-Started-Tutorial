@@ -86,6 +86,7 @@ class EstateProperty(models.Model):
                 if self.mapped('offer_id.price') else 0
 
     # -------- Constrains and Onchange Methods --------
+    @api.onchange("garden")
     def _onchange_garden(self):
         """ Sets default values when garden is selected """
         if self.garden:
@@ -93,7 +94,7 @@ class EstateProperty(models.Model):
             self.garden_orientation = 'north'
         else:
             self.garden_area = 0
-            self.garden_orientation = ''
+            self.garden_orientation = False
 
     # Adding constrains using Python code
     @api.constrains('selling_price')
@@ -116,6 +117,8 @@ class EstateProperty(models.Model):
     def action_sell_property(self):
         for record in self:
             if record.state != 'canceled' and record.state != 'sold':
+                if 'accepted' not in record.mapped('offer_id.status'):
+                    raise UserError("You can't sell a property without offers")
                 record.state = 'sold'
             else:
                 raise UserError("You can't change the status of this property")
