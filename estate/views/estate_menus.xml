@@ -9,5 +9,8 @@
             <menuitem id="estate_property_type_menu_action" action="estate_property_type_action"/>
             <menuitem id="estate_property_tag_menu_action" action="estate_property_tag_action"/>
         </menuitem>
+        <!-- <menuitem id="estate_propert_graph_first_level_menu" name="Dashboard" sequence="3">
+            <menuitem id="estate_property_graph_menu_action" action="estate_property_dashboard_action"/>
+        </menuitem> -->
     </menuitem>
 </odoo>

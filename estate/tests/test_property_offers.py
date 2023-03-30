@@ -1,6 +1,7 @@
 from odoo.tests.common import TransactionCase
 from odoo.exceptions import UserError
 
+
 class TestPropertyOffers(TransactionCase):
 
     @classmethod
@@ -31,13 +32,12 @@ class TestPropertyOffers(TransactionCase):
         })
         return new_offer
 
-    def test_create_offer_for_sold_property(cls):
+    def test_create_offer_for_sold_property(self):
         """ Test that offers can't be created when
             a property is sold. """
-        property = cls.create_property('Big Dept.',
-                                          'Dept. with 2 bedrooms',
-                                          12345, 1000.00, 'sold')
-        with cls.assertRaises(UserError, msg="You can't create offers for \
+        property = self.create_property('Big Dept.',
+                                        'Dept. with 2 bedrooms',
+                                        12345, 1000.00, 'sold')
+        with self.assertRaises(UserError, msg="You can't create offers for \
                               sold properties"):
-            cls.create_offer(1000.00, cls.partner, property.id)
-
+            self.create_offer(1000.00, self.partner, property.id)

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from odoo import api, fields, models
+from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools import float_is_zero
 
@@ -32,7 +32,9 @@ class EstatePropertyOffer(models.Model):
     @api.depends("validity", "create_date")
     def _compute_deadline(self):
         for record in self:
-            record.date_deadline = (record.create_date if record.create_date else datetime.now().date()) + relativedelta(days=record.validity)
+            record.date_deadline = (record.create_date if record.create_date
+                                    else datetime.now().date()
+                                    ) + relativedelta(days=record.validity)
 
     # This method works similar as the compute method as it update the field values based on another field
     # This method only works after save a record
@@ -48,13 +50,13 @@ class EstatePropertyOffer(models.Model):
             This method link the buyer with the property """
         for record in self:
             if record.property_id.state not in ['offer_accepted', 'sold', 'canceled'] \
-                and float_is_zero(record.property_id.selling_price, 2):
+                    and float_is_zero(record.property_id.selling_price, 2):
                 record.status = 'accepted'
                 record.property_id.selling_price = record.price
                 record.property_id.partner_id = record.partner_id
                 record.property_id.state = 'offer_accepted'
             else:
-                raise UserError("You can't accept the offer")
+                raise UserError(_("You can't accept the offer"))
         return True
 
     def action_cancel_offer(self):
@@ -63,7 +65,7 @@ class EstatePropertyOffer(models.Model):
             if record.status is False:
                 record.status = 'refused'
             else:
-                raise UserError("You can't cancel this offer")
+                raise UserError(_("You can't cancel this offer"))
         return True
 
     # -------- CRUD Methods --------
@@ -79,13 +81,13 @@ class EstatePropertyOffer(models.Model):
             ('property_id', '=', vals['property_id'])
         ], order="price desc", limit=1)
         if offer:
-            raise UserError(f"You can't create an offer lower than {offer[0].price}")
+            raise UserError(_("You can't create an offer lower than %s", {offer[0].price}))
 
         if self.env['estate.property'].browse(vals['property_id']).state == 'new':
             self.env['estate.property'].browse(vals['property_id']).state = 'offer_received'
 
         # Add validation to avoid creating offers when properties are sold
         if self.env['estate.property'].browse(vals['property_id']).state == 'sold':
-            raise UserError("You can't create offers for sold properties")
+            raise UserError(_("You can't create offers for sold properties"))
 
         return super().create(vals)

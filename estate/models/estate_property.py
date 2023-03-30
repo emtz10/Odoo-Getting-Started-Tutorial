@@ -1,14 +1,14 @@
-"""" Real Estate Property module for Odoo 16 """
-
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 """" Import packages from Odoo """
-from odoo import api, fields, models
+from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_compare, float_is_zero
 
+"""" Real Estate Property module for Odoo 16
+    Estate properties main model """
 
-""" Estate properties main model """
+
 class EstateProperty(models.Model):
     # -------- Private Attributes --------
     # Set name to table in database, `.` converts to `_`
@@ -27,36 +27,39 @@ class EstateProperty(models.Model):
     description = fields.Char(required=True)
     postcode = fields.Char(required=True)
     # Relativedelta allows to add time by months because datetime only allows by days
-    date_availability = fields.Date('Date Availability', default=datetime.now() + relativedelta(months=3), copy=False)
-    expected_price = fields.Float('Expected price', digits=(10,1), required=True)
+    date_availability = fields.Date(default=datetime.now() +
+                                    relativedelta(months=3),
+                                    copy=False)
+    expected_price = fields.Float(digits=(10, 1), required=True)
     # 'Copy' parameter defines if the value of the field can be copied when duplicated
-    selling_price = fields.Float('Selling price', digits=(10,1), readonly=True, copy=False)
+    selling_price = fields.Float(digits=(10, 1), readonly=True, copy=False)
     bedrooms = fields.Integer(default=2)
-    living_area = fields.Integer('Living area')
+    living_area = fields.Integer()
     facades = fields.Integer()
     garage = fields.Boolean(default=False)
     garden = fields.Boolean(default=False)
-    garden_area = fields.Integer('Garden area')
-    garden_orientation =  fields.Selection(string='Garden orientation', selection=[
+    garden_area = fields.Integer()
+    garden_orientation = fields.Selection(selection=[
         ('north', 'North'),
         ('south', 'South'),
         ('east', 'East'),
         ('west', 'West')
     ])
     property_type_id = fields.Many2one(string="Property Type",
-        comodel_name='estate.property.type')
+                                       comodel_name='estate.property.type')
     users_id = fields.Many2one('res.users', string='Salesman',
-        default=lambda self: self.env.user)
+                               default=lambda self: self.env.user)
     partner_id = fields.Many2one('res.partner', string='Buyer',
-        copy=False)
+                                 copy=False)
     property_tag_id = fields.Many2many('estate.property.tag',
-        string="Tags")
+                                       string="Tags")
     offer_id = fields.One2many("estate.property.offer", "property_id",
-        string="Offers")
+                               string="Offers")
     total_area = fields.Integer(compute='_compute_total_area')
     best_price = fields.Float(compute='_compute_best_offer')
     company_id = fields.Many2one('res.company', string='Company',
-        required=True, default=lambda self: self.env.company)
+                                 required=True,
+                                 default=lambda self: self.env.company)
     # Adding reserved fields to table
     active = fields.Boolean(default=True)
     state = fields.Selection(
@@ -70,7 +73,7 @@ class EstateProperty(models.Model):
         ]), required=True, copy=False, default='new'
     )
 
-   # -------- Compute Methods --------
+    # -------- Compute Methods --------
     # Adding dependencies to decorator
     @api.depends("living_area", "garden_area")
     def _compute_total_area(self):
@@ -102,8 +105,8 @@ class EstateProperty(models.Model):
         """ Checks if selling price is lower than 90% of expected price """
         for record in self:
             if float_compare(record.selling_price, (record.expected_price * 0.9), 2) < 0 \
-                and float_is_zero(record.selling_price, 2) is False:
-                raise ValidationError("Selling price can't be lower than 90% of expected price")
+                    and float_is_zero(record.selling_price, 2) is False:
+                raise ValidationError(_("Selling price can't be lower than 90% of expected price"))
 
     # -------- Action Methods --------
     def action_cancel_property(self):
@@ -111,17 +114,17 @@ class EstateProperty(models.Model):
             if record.state != 'sold' and record.state != 'canceled':
                 record.state = 'canceled'
             else:
-                raise UserError("You can't change the status of this property")
+                raise UserError(_("You can't change the status of this property"))
         return True
 
     def action_sell_property(self):
         for record in self:
             if record.state != 'canceled' and record.state != 'sold':
                 if 'accepted' not in record.mapped('offer_id.status'):
-                    raise UserError("You can't sell a property without offers")
+                    raise UserError(_("You can't sell a property without offers"))
                 record.state = 'sold'
             else:
-                raise UserError("You can't change the status of this property")
+                raise UserError(_("You can't change the status of this property"))
         return True
 
     # -------- CRUD Methods --------
@@ -132,4 +135,4 @@ class EstateProperty(models.Model):
         """
         for record in self:
             if record.state not in ['new', 'canceled']:
-                raise UserError("Properties with offers can't be deleted")
+                raise UserError(_("Properties with offers can't be deleted"))

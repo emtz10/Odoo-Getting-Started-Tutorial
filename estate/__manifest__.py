@@ -1,8 +1,7 @@
 {
     'name': "Real Estate",
-    'version': '1.0',
-    'depends': ['base'],
-    'author': "Eduardo",
+    'version': '16.0.0.0.0',
+    'depends': ['base', 'web'],
     'installable': True,
     'application': True,
     'demo': [
@@ -19,4 +18,6 @@
         'report/estate_property_reports.xml',
     ],
     'category': 'Real Estate/Brokerage',
+    "license": "LGPL-3",
+    'author': "Vauxoo",
 }
